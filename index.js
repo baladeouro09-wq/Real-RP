@@ -428,16 +428,16 @@ async function createTranscript(channel, requester) {
     const time = new Date(msg.createdTimestamp).toLocaleString('pt-BR');
     return `[${time}] ${msg.author.tag}: ${msg.content || '[sem texto]'}${msg.attachments.size ? ` [Anexos: ${msg.attachments.map(a => a.url).join(', ')}]` : ''}`;
   }).join('\n');
+
   const fileName = `transcript-${channel.id}.txt`;
-  fs.writeFileSync(fileName, transcript, 'utf8');
-  const attachment = new AttachmentBuilder(fileName);
+  const attachment = new AttachmentBuilder(Buffer.from(transcript, 'utf8'), { name: fileName });
+
   const ticketLogChannelId = getLogChannelId('ticket');
-  await client.channels.fetch(ticketLogChannelId).then(logChannel => {
+  await client.channels.fetch(ticketLogChannelId).then(async logChannel => {
     if (logChannel && logChannel.isTextBased()) {
-      logChannel.send({ content: `Transcrição do ticket enviada por ${requester.tag}.`, files: [attachment] });
+      await logChannel.send({ content: `Transcrição do ticket enviada por ${requester.tag}.`, files: [attachment] });
     }
   });
-  fs.unlinkSync(fileName);
 }
 
 client.on(Events.GuildMemberAdd, async member => {
