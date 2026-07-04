@@ -734,4 +734,12 @@ client.once(Events.Ready, async () => {
   }
 });
 
-client.login(config.token);
+if (!config.token || typeof config.token !== 'string' || config.token.trim().length === 0) {
+  console.error('Erro: DISCORD_TOKEN não está definido ou está vazio. Verifique as variáveis de ambiente no Railway.');
+  process.exit(1);
+}
+
+client.login(config.token.trim()).catch(error => {
+  console.error('Erro ao iniciar o bot com o token fornecido:', error.message);
+  process.exit(1);
+});
