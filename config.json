@@ -1,10 +1,15 @@
 {
-  "token": "",
-  "applicationId": "",
-  "guildId": "",
-  "staffRoleId": "",
-  "adminRoleId": "",
-  "logChannelId": "",
-  "suggestionsChannelId": "",
-  "ticketCategoryIds": []
+  "token": "MTUyMjY1NTI0MjA2NjQ2MDgwMw.GsJ3UD.F1t-HcYNKHz4xqYRTlLyVk1BK4uzPsWAROMv3I",
+  "applicationId": "1522655242066460803",
+  "guildId": "1522644295209975808",
+  "staffRoleId": "1522644295469895689",
+  "adminRoleId": "1522644295486537761",
+  "logChannelId": "1522644296883240967",
+  "suggestionsChannelId": "1522644297973895175",
+  "ticketCategoryId": [
+    "1522644296208089100",
+    "1522644296208089099",
+    "1522644296208089102",
+    "1522644296208089103"
+  ]
 }

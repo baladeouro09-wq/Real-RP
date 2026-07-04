@@ -1,60 +1,84 @@
-const { REST, Routes, SlashCommandBuilder } = require('discord.js');
-const fs = require('fs');
-
-// Carrega configuração do config.json ou variáveis de ambiente
-let token, applicationId, guildId;
-
-if (fs.existsSync('./config.json')) {
-  const config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
-  token = process.env.DISCORD_TOKEN || config.token;
-  applicationId = process.env.APPLICATION_ID || config.applicationId;
-  guildId = process.env.GUILD_ID || config.guildId;
-} else {
-  token = process.env.DISCORD_TOKEN;
-  applicationId = process.env.APPLICATION_ID;
-  guildId = process.env.GUILD_ID;
-}
-
+const { REST, Routes, SlashCommandBuilder, ChannelType } = require('discord.js');
+const config = require('./config.json');
 const commands = [
   new SlashCommandBuilder()
     .setName('painel')
-    .setDescription('Envia o painel de tickets e sugestões no canal atual')
-    .toJSON(),
-
+    .setDescription('Envia o painel completo de Tickets e Sugestões do Real RP'),
   new SlashCommandBuilder()
-    .setName('setup')
-    .setDescription('Configura os IDs de cargo e canal do bot')
-    .addRoleOption(option =>
-      option.setName('staff_role').setDescription('Cargo de Staff').setRequired(true)
-    )
-    .addRoleOption(option =>
-      option.setName('admin_role').setDescription('Cargo de Admin').setRequired(true)
-    )
-    .addChannelOption(option =>
-      option.setName('log_channel').setDescription('Canal de logs').setRequired(true)
-    )
-    .addChannelOption(option =>
-      option.setName('suggestions_channel').setDescription('Canal de sugestões').setRequired(true)
+    .setName('painel_tickets')
+    .setDescription('Envia apenas o painel de Tickets do Real RP'),
+  new SlashCommandBuilder()
+    .setName('painel_sugestoes')
+    .setDescription('Envia apenas o painel de Sugestões do Real RP'),
+  new SlashCommandBuilder()
+    .setName('sugestao')
+    .setDescription('Envia uma sugestão diretamente para o canal de sugestões')
+    .addStringOption(option =>
+      option.setName('titulo')
+        .setDescription('Título da sugestão')
+        .setRequired(true),
     )
     .addStringOption(option =>
-      option.setName('ticket_category').setDescription('Nome ou ID da categoria de tickets').setRequired(true)
+      option.setName('descricao')
+        .setDescription('Descrição detalhada da sugestão')
+        .setRequired(true),
     )
-    .toJSON(),
-];
+    .addStringOption(option =>
+      option.setName('categoria')
+        .setDescription('Categoria da sugestão')
+        .setRequired(true)
+        .addChoices(
+          { name: 'Servidor', value: 'servidor' },
+          { name: 'Economia', value: 'economia' },
+          { name: 'Polícia', value: 'policia' },
+          { name: 'Staff', value: 'staff' },
+          { name: 'Eventos', value: 'eventos' },
+          { name: 'Outros', value: 'outros' },
+        ),
+    ),
+  new SlashCommandBuilder()
+    .setName('setup')
+    .setDescription('Configura os canais e roles do sistema de tickets e sugestões')
+    .addRoleOption(option =>
+      option.setName('staff_role')
+        .setDescription('Cargo de staff que pode gerir tickets e sugestões')
+        .setRequired(true),
+    )
+    .addRoleOption(option =>
+      option.setName('admin_role')
+        .setDescription('Cargo de administrador com acesso total')
+        .setRequired(true),
+    )
+    .addChannelOption(option =>
+      option.setName('log_channel')
+        .setDescription('Canal de logs do sistema')
+        .setRequired(true)
+        .addChannelTypes(ChannelType.GuildText),
+    )
+    .addChannelOption(option =>
+      option.setName('suggestions_channel')
+        .setDescription('Canal onde sugestões serão publicadas')
+        .setRequired(true)
+        .addChannelTypes(ChannelType.GuildText),
+    )
+    .addChannelOption(option =>
+      option.setName('ticket_category')
+        .setDescription('Categoria onde os tickets serão criados')
+        .setRequired(true)
+        .addChannelTypes(ChannelType.GuildCategory),
+    ),
+].map(command => command.toJSON());
 
-const rest = new REST({ version: '10' }).setToken(token);
+const rest = new REST({ version: '10' }).setToken(config.token);
 
 (async () => {
   try {
-    console.log('🔄 Registrando comandos de barra...');
-
-    await rest.put(
-      Routes.applicationGuildCommands(applicationId, guildId),
-      { body: commands }
-    );
-
-    console.log('✅ Comandos registrados com sucesso!');
+    console.log('Registrando comandos...');
+    await rest.put(Routes.applicationGuildCommands(config.applicationId, config.guildId), {
+      body: commands,
+    });
+    console.log('Comandos registrados com sucesso.');
   } catch (error) {
-    console.error('❌ Erro ao registrar comandos:', error);
+    console.error('Erro ao registrar comandos:', error);
   }
 })();
