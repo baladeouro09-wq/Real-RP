@@ -387,10 +387,25 @@ async function updateSuggestionState(interaction, state, label, color) {
 
 async function sendLog({ title, description, fields = [], type = 'general' }) {
   const channelId = getLogChannelId(type);
-  if (!channelId) return;
+  if (!channelId) {
+    console.warn(`[logs] Nenhum canal configurado para ${type}`);
+    return;
+  }
+
   try {
     const logChannel = await client.channels.fetch(channelId);
-    if (!logChannel || !logChannel.isTextBased()) return;
+    if (!logChannel || !logChannel.isTextBased()) {
+      console.warn(`[logs] Canal ${channelId} para ${type} não encontrado ou não é um canal de texto.`);
+      return;
+    }
+
+    const permissions = logChannel.permissionsFor(client.user?.id);
+    const hasRequiredPerms = permissions?.has([PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.EmbedLinks]);
+    if (!hasRequiredPerms) {
+      console.warn(`[logs] O bot não tem permissões suficientes no canal ${channelId} (${type}). Verifica View Channel, Send Messages e Embed Links.`);
+      return;
+    }
+
     const embed = new EmbedBuilder()
       .setTitle(title)
       .setDescription(description)
@@ -398,9 +413,11 @@ async function sendLog({ title, description, fields = [], type = 'general' }) {
       .setColor(colors.red)
       .setTimestamp()
       .setFooter({ text: type === 'ticket' ? 'Real RP Tickets' : type === 'invite' ? 'Real RP Convites' : 'Real RP Logs' });
+
     await logChannel.send({ embeds: [embed] });
+    console.log(`[logs] Enviado com sucesso para ${type} (${channelId})`);
   } catch (error) {
-    console.error(`Erro ao enviar log (${type}):`, error);
+    console.error(`[logs] Erro ao enviar log (${type}) para ${channelId}:`, error);
   }
 }
 
@@ -748,6 +765,30 @@ client.once(Events.Ready, async () => {
   } catch (error) {
     console.warn('Não foi possível atualizar o nome ou avatar do bot:', error.message);
   }
+
+  await sendLog({
+    title: 'Teste de logs',
+    description: 'O bot iniciou e esta mensagem confirma que os logs estão a funcionar.',
+    fields: [
+      { name: 'Tipo', value: 'Geral', inline: true },
+      { name: 'Canal', value: config.logChannelId, inline: true },
+    ],
+    type: 'general',
+  });
+
+  await sendLog({
+    title: 'Teste de logs de tickets',
+    description: 'Esta mensagem confirma o canal de tickets.',
+    fields: [{ name: 'Canal', value: config.ticketLogChannelId || config.logChannelId, inline: true }],
+    type: 'ticket',
+  });
+
+  await sendLog({
+    title: 'Teste de logs de convites',
+    description: 'Esta mensagem confirma o canal de convites.',
+    fields: [{ name: 'Canal', value: config.inviteLogChannelId || config.logChannelId, inline: true }],
+    type: 'invite',
+  });
 });
 
 if (!config.token || typeof config.token !== 'string' || config.token.trim().length === 0) {
