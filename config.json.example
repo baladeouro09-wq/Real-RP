@@ -4,7 +4,9 @@
   "guildId": "YOUR_GUILD_ID",
   "staffRoleId": "STAFF_ROLE_ID",
   "adminRoleId": "ADMIN_ROLE_ID",
-  "logChannelId": "LOG_CHANNEL_ID",
+  "logChannelId": "BOT_LOG_CHANNEL_ID",
+  "ticketLogChannelId": "TICKET_LOG_CHANNEL_ID",
+  "inviteLogChannelId": "INVITE_LOG_CHANNEL_ID",
   "suggestionsChannelId": "SUGGESTIONS_CHANNEL_ID",
   "ticketCategoryId": "TICKET_CATEGORY_CATEGORY_ID"
 }

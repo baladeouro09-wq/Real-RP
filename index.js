@@ -28,7 +28,9 @@ if (process.env.DISCORD_TOKEN) {
     guildId: process.env.GUILD_ID,
     staffRoleId: process.env.STAFF_ROLE_ID,
     adminRoleId: process.env.ADMIN_ROLE_ID,
-    logChannelId: process.env.LOG_CHANNEL_ID,
+    logChannelId: process.env.BOT_LOG_CHANNEL_ID || process.env.LOG_CHANNEL_ID,
+    ticketLogChannelId: process.env.TICKET_LOG_CHANNEL_ID || process.env.LOG_CHANNEL_ID,
+    inviteLogChannelId: process.env.INVITE_LOG_CHANNEL_ID || process.env.LOG_CHANNEL_ID,
     suggestionsChannelId: process.env.SUGGESTIONS_CHANNEL_ID,
     ticketCategoryId: process.env.TICKET_CATEGORY_ID ? JSON.parse(process.env.TICKET_CATEGORY_ID) : [],
   };
@@ -36,6 +38,12 @@ if (process.env.DISCORD_TOKEN) {
   config = require(configPath);
 } else {
   throw new Error('Nenhum config.json encontrado e nenhuma variável de ambiente DISCORD_TOKEN foi definida.');
+}
+
+function getLogChannelId(type = 'general') {
+  if (type === 'ticket') return config.ticketLogChannelId || config.logChannelId || config.botLogChannelId;
+  if (type === 'invite') return config.inviteLogChannelId || config.logChannelId || config.botLogChannelId;
+  return config.logChannelId || config.botLogChannelId;
 }
 
 const client = new Client({
@@ -291,6 +299,7 @@ async function createTicketChannel(interaction, categoryKey, banData = null) {
       { name: 'Canal', value: `${channel}`, inline: true },
       { name: 'Categoria', value: category.label, inline: true },
     ],
+    type: 'ticket',
   });
 
   return channel;
@@ -376,10 +385,11 @@ async function updateSuggestionState(interaction, state, label, color) {
   });
 }
 
-async function sendLog({ title, description, fields = [] }) {
-  if (!config.logChannelId) return;
+async function sendLog({ title, description, fields = [], type = 'general' }) {
+  const channelId = getLogChannelId(type);
+  if (!channelId) return;
   try {
-    const logChannel = await client.channels.fetch(config.logChannelId);
+    const logChannel = await client.channels.fetch(channelId);
     if (!logChannel || !logChannel.isTextBased()) return;
     const embed = new EmbedBuilder()
       .setTitle(title)
@@ -387,10 +397,10 @@ async function sendLog({ title, description, fields = [] }) {
       .addFields(fields)
       .setColor(colors.red)
       .setTimestamp()
-      .setFooter({ text: 'Real RP Logs' });
+      .setFooter({ text: type === 'ticket' ? 'Real RP Tickets' : type === 'invite' ? 'Real RP Convites' : 'Real RP Logs' });
     await logChannel.send({ embeds: [embed] });
   } catch (error) {
-    console.error('Erro ao enviar log:', error);
+    console.error(`Erro ao enviar log (${type}):`, error);
   }
 }
 
@@ -404,7 +414,8 @@ async function createTranscript(channel, requester) {
   const fileName = `transcript-${channel.id}.txt`;
   fs.writeFileSync(fileName, transcript, 'utf8');
   const attachment = new AttachmentBuilder(fileName);
-  await client.channels.fetch(config.logChannelId).then(logChannel => {
+  const ticketLogChannelId = getLogChannelId('ticket');
+  await client.channels.fetch(ticketLogChannelId).then(logChannel => {
     if (logChannel && logChannel.isTextBased()) {
       logChannel.send({ content: `Transcrição do ticket enviada por ${requester.tag}.`, files: [attachment] });
     }
@@ -425,6 +436,16 @@ client.on(Events.GuildMemberAdd, async member => {
     }
 
     await member.roles.add(role);
+
+    await sendLog({
+      title: 'Novo membro entrou',
+      description: `${member.user} entrou no servidor e recebeu a role inicial.`,
+      fields: [
+        { name: 'Usuário', value: `${member.user.tag}`, inline: true },
+        { name: 'ID', value: member.id, inline: true },
+      ],
+      type: 'invite',
+    });
   } catch (error) {
     console.error('Erro ao atribuir a role ao entrar:', error);
   }
@@ -593,7 +614,7 @@ client.on(Events.InteractionCreate, async interaction => {
         await channel.setTopic((channel.topic || '').replace('Estado: Aberto', 'Estado: Fechado'));
         await interaction.reply({ content: 'Ticket fechado. Pode ser reaberto com o botão abaixo.', ephemeral: true });
         await channel.send({ content: '🔒 Ticket fechado. A equipa pode reabrir quando necessário.', components: buildTicketActions(true) });
-        await sendLog({ title: 'Ticket Fechado', description: `${interaction.user} fechou o ticket ${channel}.`, fields: [] });
+        await sendLog({ title: 'Ticket Fechado', description: `${interaction.user} fechou o ticket ${channel}.`, fields: [], type: 'ticket' });
         return;
       }
 
@@ -603,20 +624,20 @@ client.on(Events.InteractionCreate, async interaction => {
         await channel.setTopic((channel.topic || '').replace('Estado: Fechado', 'Estado: Aberto'));
         await interaction.reply({ content: 'Ticket reaberto com sucesso.', ephemeral: true });
         await channel.send({ content: '🔓 Ticket reaberto. Continua o atendimento.', components: buildTicketActions(false) });
-        await sendLog({ title: 'Ticket Reaberto', description: `${interaction.user} reabriu o ticket ${channel}.`, fields: [] });
+        await sendLog({ title: 'Ticket Reaberto', description: `${interaction.user} reabriu o ticket ${channel}.`, fields: [], type: 'ticket' });
         return;
       }
 
       if (interaction.customId === 'ticket_transcript') {
         await interaction.reply({ content: 'A transcrição está a ser gerada e enviada para os logs.', ephemeral: true });
         await createTranscript(channel, interaction.user);
-        await sendLog({ title: 'Transcrição Guardada', description: `${interaction.user} guardou a transcrição do ticket ${channel}.`, fields: [] });
+        await sendLog({ title: 'Transcrição Guardada', description: `${interaction.user} guardou a transcrição do ticket ${channel}.`, fields: [], type: 'ticket' });
         return;
       }
 
       if (interaction.customId === 'ticket_delete') {
         await interaction.reply({ content: 'Ticket apagado. O canal será removido em breve.', ephemeral: true });
-        await sendLog({ title: 'Ticket Apagado', description: `${interaction.user} apagou o ticket ${channel}.`, fields: [] });
+        await sendLog({ title: 'Ticket Apagado', description: `${interaction.user} apagou o ticket ${channel}.`, fields: [], type: 'ticket' });
         setTimeout(async () => {
           if (channel.deletable) {
             await channel.delete().catch(() => null);
@@ -628,7 +649,7 @@ client.on(Events.InteractionCreate, async interaction => {
       if (interaction.customId.startsWith('ticket_rating_')) {
         const rating = interaction.customId.split('_').pop();
         await interaction.reply({ content: `Obrigado pelo seu comentário! Avaliação recebida: ${rating} estrela(s).`, ephemeral: true });
-        await sendLog({ title: 'Avaliação de Ticket', description: `${interaction.user} avaliou o atendimento com ${rating} estrela(s).`, fields: [{ name: 'Ticket', value: `${channel}`, inline: true }] });
+        await sendLog({ title: 'Avaliação de Ticket', description: `${interaction.user} avaliou o atendimento com ${rating} estrela(s).`, fields: [{ name: 'Ticket', value: `${channel}`, inline: true }], type: 'ticket' });
         return;
       }
     }

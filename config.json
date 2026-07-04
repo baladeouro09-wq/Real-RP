@@ -4,7 +4,9 @@
   "guildId": "1522644295209975808",
   "staffRoleId": "1522644295469895689",
   "adminRoleId": "1522644295486537761",
-  "logChannelId": "1522644296883240967",
+  "logChannelId": "1522644299773251744",
+  "ticketLogChannelId": "1522644299991486568",
+  "inviteLogChannelId": "1522644299991486569",
   "suggestionsChannelId": "1522644297973895175",
   "ticketCategoryId": [
     "1522644296208089100",
