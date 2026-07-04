@@ -8,9 +8,6 @@ const commands = [
     .setName('painel_tickets')
     .setDescription('Envia apenas o painel de Tickets do Real RP'),
   new SlashCommandBuilder()
-    .setName('painel_sugestoes')
-    .setDescription('Envia apenas o painel de Sugestões do Real RP'),
-  new SlashCommandBuilder()
     .setName('sugestao')
     .setDescription('Envia uma sugestão diretamente para o canal de sugestões')
     .addStringOption(option =>

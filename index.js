@@ -433,7 +433,7 @@ client.on(Events.GuildMemberAdd, async member => {
 client.on(Events.InteractionCreate, async interaction => {
   try {
     if (interaction.isChatInputCommand()) {
-      if (interaction.commandName === 'painel' || interaction.commandName === 'painel_tickets' || interaction.commandName === 'painel_sugestoes') {
+      if (interaction.commandName === 'painel' || interaction.commandName === 'painel_tickets') {
         if (interaction.commandName === 'painel_tickets') {
           const allowedUserIds = ['1522644295486537767', '1522644295486537766', '1522644295486537765'];
           const member = interaction.member;
@@ -446,11 +446,6 @@ client.on(Events.InteractionCreate, async interaction => {
           }
 
           await interaction.reply({ embeds: [ticketPanelEmbed], components: buildTicketPanel(), files: [{ attachment: './assets/real-rp-logo.png', name: 'real-rp-logo.png' }] });
-          return;
-        }
-
-        if (interaction.commandName === 'painel_sugestoes') {
-          await interaction.reply({ embeds: [suggestionPanelEmbed], components: buildSuggestionPanel(), files: [{ attachment: './assets/real-rp-logo.png', name: 'real-rp-logo.png' }] });
           return;
         }
 
